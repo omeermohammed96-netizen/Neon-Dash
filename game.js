@@ -8,24 +8,24 @@ bgMusic.loop = true;
 bgMusic.volume = 0.5;
 let isMusicPlaying = false;
 
-let gameActive = true, speed = 3.3, acceleration = 0.00045, distance = 0;
+let gameActive = true, speed = 3.5, acceleration = 0.0005, distance = 0;
 let highScore = localStorage.getItem("highScore") || 0, obstacles = [], frameCount = 0;
 let canRevive = true;
 
 const player = {
-    x: 80, y: canvas.height / 2, radius: 13, dy: 0, gravity: 0.48, gravityDir: 1, color: "#00f2ff", visible: true,
+    x: 80, y: canvas.height / 2, radius: 15, dy: 0, gravity: 0.5, gravityDir: 1, color: "#00f2ff", visible: true,
     update() {
         if (!this.visible) return;
         this.dy += this.gravity * this.gravityDir;
         this.y += this.dy;
 
-        // --- إصلاح اختفاء الكرة في الأسفل والأعلى ---
+        // --- تعديل الحواف النهائي: منع الكرة من الاختفاء ---
         if (this.y + this.radius > canvas.height) {
-            this.y = canvas.height - this.radius; // تثبيت الكرة عند الحافة السفلية تماماً
-            this.dy = 0; 
+            this.y = canvas.height - this.radius; // تثبيت عند الحافة السفلية
+            this.dy = 0;
         }
         if (this.y - this.radius < 0) {
-            this.y = this.radius; // تثبيت الكرة عند الحافة العلوية تماماً
+            this.y = this.radius; // تثبيت عند الحافة العلوية
             this.dy = 0;
         }
     },
@@ -33,14 +33,14 @@ const player = {
         if (!this.visible) return;
         ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
         ctx.fillStyle = this.color; ctx.fill();
-        ctx.strokeStyle = "white"; ctx.lineWidth = 2; ctx.stroke();
+        ctx.strokeStyle = "white"; ctx.lineWidth = 3; ctx.stroke();
     }
 };
 
 function spawnObstacle() {
-    let h = canvas.height * 0.4;
+    let h = canvas.height * 0.35;
     let y = Math.random() < 0.5 ? 0 : canvas.height - h;
-    obstacles.push({ x: canvas.width + 50, y: y, w: 30, h: h, color: "#ff0055" });
+    obstacles.push({ x: canvas.width + 50, y: y, w: 35, h: h, color: "#ff0055" });
 }
 
 function gameOver() {
@@ -66,7 +66,7 @@ function animate() {
     if (gameActive) {
         distance += speed/10; speed += acceleration; frameCount++;
         player.update();
-        if (frameCount % 85 === 0) spawnObstacle();
+        if (frameCount % 80 === 0) spawnObstacle();
 
         for (let i = obstacles.length - 1; i >= 0; i--) {
             let obs = obstacles[i];
@@ -74,8 +74,9 @@ function animate() {
             ctx.fillStyle = obs.color;
             ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
 
-            if (player.x + player.radius > obs.x && player.x - player.radius < obs.x + obs.w &&
-                player.y + player.radius > obs.y && player.y - player.radius < obs.y + obs.h) {
+            // تحسين منطقة التصادم
+            if (player.x + (player.radius-2) > obs.x && player.x - (player.radius-2) < obs.x + obs.w &&
+                player.y + (player.radius-2) > obs.y && player.y - (player.radius-2) < obs.y + obs.h) {
                 if (Math.floor(distance) > highScore) { 
                     highScore = Math.floor(distance); 
                     localStorage.setItem("highScore", highScore); 
@@ -87,15 +88,15 @@ function animate() {
     }
 
     player.draw();
-    ctx.fillStyle = "white"; ctx.font = "bold 18px Arial";
-    if(gameActive) ctx.fillText(`${Math.floor(distance)}m`, canvas.width - 70, 40);
+    ctx.fillStyle = "white"; ctx.font = "bold 20px Arial";
+    if(gameActive) ctx.fillText(`${Math.floor(distance)}m`, canvas.width - 80, 50);
     requestAnimationFrame(animate);
 }
 
 window.addEventListener('touchstart', (e) => {
     e.preventDefault();
     if (!isMusicPlaying) { bgMusic.play().then(() => isMusicPlaying = true).catch(() => {}); }
-    if (gameActive) { player.gravityDir *= -1; player.dy = player.gravityDir * 8; }
+    if (gameActive) { player.gravityDir *= -1; player.dy = player.gravityDir * 9; }
 }, { passive: false });
 
 animate();
