@@ -18,8 +18,16 @@ const player = {
         if (!this.visible) return;
         this.dy += this.gravity * this.gravityDir;
         this.y += this.dy;
-        if (this.y + this.radius > canvas.height) this.y = canvas.height - this.radius;
-        if (this.y - this.radius < 0) this.y = this.radius;
+
+        // --- إصلاح اختفاء الكرة في الأسفل والأعلى ---
+        if (this.y + this.radius > canvas.height) {
+            this.y = canvas.height - this.radius; // تثبيت الكرة عند الحافة السفلية تماماً
+            this.dy = 0; 
+        }
+        if (this.y - this.radius < 0) {
+            this.y = this.radius; // تثبيت الكرة عند الحافة العلوية تماماً
+            this.dy = 0;
+        }
     },
     draw() {
         if (!this.visible) return;
@@ -51,7 +59,6 @@ window.reviveAction = function() {
 }
 
 function animate() {
-    // 1. مسح الشاشة أولاً بلون واحد ثابت لمنع الوميض
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = "#050010"; 
     ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -61,7 +68,6 @@ function animate() {
         player.update();
         if (frameCount % 85 === 0) spawnObstacle();
 
-        // 2. تحديث ورسم العوائق
         for (let i = obstacles.length - 1; i >= 0; i--) {
             let obs = obstacles[i];
             obs.x -= speed;
@@ -80,13 +86,9 @@ function animate() {
         }
     }
 
-    // 3. رسم اللاعب في النهاية ليكون فوق كل شيء
     player.draw();
-
-    // 4. عرض المسافة
     ctx.fillStyle = "white"; ctx.font = "bold 18px Arial";
     if(gameActive) ctx.fillText(`${Math.floor(distance)}m`, canvas.width - 70, 40);
-
     requestAnimationFrame(animate);
 }
 
