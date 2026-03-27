@@ -8,57 +8,50 @@ bgMusic.loop = true;
 bgMusic.volume = 0.5;
 let isMusicPlaying = false;
 
-let gameActive = true, speed = 3.5, acceleration = 0.0005, distance = 0;
+let gameActive = true, speed = 3.3, acceleration = 0.00045, distance = 0;
 let highScore = localStorage.getItem("highScore") || 0, obstacles = [], frameCount = 0;
 let canRevive = true;
 
 const player = {
-    x: 80, y: canvas.height / 2, radius: 15, dy: 0, gravity: 0.5, gravityDir: 1, color: "#00f2ff", visible: true,
+    x: 80, y: canvas.height / 2, radius: 13, dy: 0, gravity: 0.48, gravityDir: 1, color: "#00f2ff", visible: true,
     update() {
         if (!this.visible) return;
         this.dy += this.gravity * this.gravityDir;
         this.y += this.dy;
-
-        // منع الكرة من الاختفاء تماماً في الحواف
-        if (this.y + this.radius > canvas.height) {
-            this.y = canvas.height - this.radius;
-            this.dy = 0;
-        }
-        if (this.y - this.radius < 0) {
-            this.y = this.radius;
-            this.dy = 0;
-        }
+        if (this.y + this.radius > canvas.height) this.y = canvas.height - this.radius;
+        if (this.y - this.radius < 0) this.y = this.radius;
     },
     draw() {
         if (!this.visible) return;
         ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
         ctx.fillStyle = this.color; ctx.fill();
-        ctx.strokeStyle = "white"; ctx.lineWidth = 3; ctx.stroke();
+        ctx.strokeStyle = "white"; ctx.lineWidth = 2; ctx.stroke();
     }
 };
 
 function spawnObstacle() {
-    let h = canvas.height * 0.35;
+    let h = canvas.height * 0.4;
     let y = Math.random() < 0.5 ? 0 : canvas.height - h;
-    obstacles.push({ x: canvas.width + 50, y: y, w: 35, h: h, color: "#ff0055" });
+    obstacles.push({ x: canvas.width + 50, y: y, w: 30, h: h, color: "#ff0055" });
 }
 
 function gameOver() {
     gameActive = false; player.visible = false;
     document.getElementById('currentScore').innerText = Math.floor(distance) + "m";
     document.getElementById('bestScore').innerText = "Best: " + highScore + "m";
+    let rBtn = document.getElementById('reviveBtn');
+    if (rBtn) rBtn.style.display = canRevive ? "block" : "none";
     document.getElementById('gameOverUI').style.display = 'block';
-    if(canRevive) document.getElementById('reviveBtn').style.display = 'block';
 }
 
-// دالة الإحياء (يجب أن تبدأ بـ window لتعمل من HTML)
 window.reviveAction = function() {
     canRevive = false; gameActive = true; player.visible = true;
     player.y = canvas.height / 2; player.dy = 0; obstacles = [];
     document.getElementById('gameOverUI').style.display = 'none';
-};
+}
 
 function animate() {
+    // 1. مسح الشاشة أولاً بلون واحد ثابت لمنع الوميض
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = "#050010"; 
     ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -66,16 +59,17 @@ function animate() {
     if (gameActive) {
         distance += speed/10; speed += acceleration; frameCount++;
         player.update();
-        if (frameCount % 80 === 0) spawnObstacle();
+        if (frameCount % 85 === 0) spawnObstacle();
 
+        // 2. تحديث ورسم العوائق
         for (let i = obstacles.length - 1; i >= 0; i--) {
             let obs = obstacles[i];
             obs.x -= speed;
             ctx.fillStyle = obs.color;
             ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
 
-            if (player.x + (player.radius-2) > obs.x && player.x - (player.radius-2) < obs.x + obs.w &&
-                player.y + (player.radius-2) > obs.y && player.y - (player.radius-2) < obs.y + obs.h) {
+            if (player.x + player.radius > obs.x && player.x - player.radius < obs.x + obs.w &&
+                player.y + player.radius > obs.y && player.y - player.radius < obs.y + obs.h) {
                 if (Math.floor(distance) > highScore) { 
                     highScore = Math.floor(distance); 
                     localStorage.setItem("highScore", highScore); 
@@ -85,17 +79,21 @@ function animate() {
             if (obs.x + obs.w < 0) obstacles.splice(i, 1);
         }
     }
+
+    // 3. رسم اللاعب في النهاية ليكون فوق كل شيء
     player.draw();
-    ctx.fillStyle = "white"; ctx.font = "bold 20px Arial";
-    if(gameActive) ctx.fillText(`${Math.floor(distance)}m`, canvas.width - 80, 50);
+
+    // 4. عرض المسافة
+    ctx.fillStyle = "white"; ctx.font = "bold 18px Arial";
+    if(gameActive) ctx.fillText(`${Math.floor(distance)}m`, canvas.width - 70, 40);
+
     requestAnimationFrame(animate);
 }
 
 window.addEventListener('touchstart', (e) => {
-    if (e.target.tagName === 'BUTTON') return; // لا تقفز الكرة عند الضغط على الأزرار
     e.preventDefault();
     if (!isMusicPlaying) { bgMusic.play().then(() => isMusicPlaying = true).catch(() => {}); }
-    if (gameActive) { player.gravityDir *= -1; player.dy = player.gravityDir * 9; }
+    if (gameActive) { player.gravityDir *= -1; player.dy = player.gravityDir * 8; }
 }, { passive: false });
 
 animate();
