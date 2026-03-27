@@ -1,5 +1,7 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
+
+// ضبط أبعاد الكانفاس لتملأ الشاشة بالكامل
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
@@ -18,8 +20,18 @@ const player = {
         if (!this.visible) return;
         this.dy += this.gravity * this.gravityDir;
         this.y += this.dy;
-        if (this.y + this.radius > canvas.height) this.y = canvas.height - this.radius;
-        if (this.y - this.radius < 0) this.y = this.radius;
+
+        // --- الحل الجذري لمشكلة الغرق (تثبيت الكرة عند الحواف) ---
+        // الحافة السفلية: نستخدم نصف القطر لضمان بقاء الكرة كاملة فوق الخط
+        if (this.y + this.radius > canvas.height) {
+            this.y = canvas.height - this.radius; 
+            this.dy = 0; 
+        }
+        // الحافة العلوية: نستخدم نصف القطر لضمان بقاء الكرة كاملة تحت الخط
+        if (this.y - this.radius < 0) {
+            this.y = this.radius; 
+            this.dy = 0; 
+        }
     },
     draw() {
         if (!this.visible) return;
@@ -51,7 +63,6 @@ window.reviveAction = function() {
 }
 
 function animate() {
-    // 1. مسح الشاشة أولاً بلون واحد ثابت لمنع الوميض
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = "#050010"; 
     ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -61,15 +72,15 @@ function animate() {
         player.update();
         if (frameCount % 85 === 0) spawnObstacle();
 
-        // 2. تحديث ورسم العوائق
         for (let i = obstacles.length - 1; i >= 0; i--) {
             let obs = obstacles[i];
             obs.x -= speed;
             ctx.fillStyle = obs.color;
             ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
 
-            if (player.x + player.radius > obs.x && player.x - player.radius < obs.x + obs.w &&
-                player.y + player.radius > obs.y && player.y - player.radius < obs.y + obs.h) {
+            // تصحيح التصادم ليكون أكثر دقة وعادلاً
+            if (player.x + (player.radius - 3) > obs.x && player.x - (player.radius - 3) < obs.x + obs.w &&
+                player.y + (player.radius - 3) > obs.y && player.y - (player.radius - 3) < obs.y + obs.h) {
                 if (Math.floor(distance) > highScore) { 
                     highScore = Math.floor(distance); 
                     localStorage.setItem("highScore", highScore); 
@@ -80,10 +91,7 @@ function animate() {
         }
     }
 
-    // 3. رسم اللاعب في النهاية ليكون فوق كل شيء
     player.draw();
-
-    // 4. عرض المسافة
     ctx.fillStyle = "white"; ctx.font = "bold 18px Arial";
     if(gameActive) ctx.fillText(`${Math.floor(distance)}m`, canvas.width - 70, 40);
 
@@ -91,6 +99,7 @@ function animate() {
 }
 
 window.addEventListener('touchstart', (e) => {
+    if (e.target.tagName === 'BUTTON') return; // منع القفز عند الضغط على الأزرار
     e.preventDefault();
     if (!isMusicPlaying) { bgMusic.play().then(() => isMusicPlaying = true).catch(() => {}); }
     if (gameActive) { player.gravityDir *= -1; player.dy = player.gravityDir * 8; }
