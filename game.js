@@ -19,13 +19,13 @@ const player = {
         this.dy += this.gravity * this.gravityDir;
         this.y += this.dy;
 
-        // --- تعديل الحواف النهائي: منع الكرة من الاختفاء ---
+        // منع الكرة من الاختفاء تماماً في الحواف
         if (this.y + this.radius > canvas.height) {
-            this.y = canvas.height - this.radius; // تثبيت عند الحافة السفلية
+            this.y = canvas.height - this.radius;
             this.dy = 0;
         }
         if (this.y - this.radius < 0) {
-            this.y = this.radius; // تثبيت عند الحافة العلوية
+            this.y = this.radius;
             this.dy = 0;
         }
     },
@@ -47,16 +47,16 @@ function gameOver() {
     gameActive = false; player.visible = false;
     document.getElementById('currentScore').innerText = Math.floor(distance) + "m";
     document.getElementById('bestScore').innerText = "Best: " + highScore + "m";
-    let rBtn = document.getElementById('reviveBtn');
-    if (rBtn) rBtn.style.display = canRevive ? "block" : "none";
     document.getElementById('gameOverUI').style.display = 'block';
+    if(canRevive) document.getElementById('reviveBtn').style.display = 'block';
 }
 
+// دالة الإحياء (يجب أن تبدأ بـ window لتعمل من HTML)
 window.reviveAction = function() {
     canRevive = false; gameActive = true; player.visible = true;
     player.y = canvas.height / 2; player.dy = 0; obstacles = [];
     document.getElementById('gameOverUI').style.display = 'none';
-}
+};
 
 function animate() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -74,7 +74,6 @@ function animate() {
             ctx.fillStyle = obs.color;
             ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
 
-            // تحسين منطقة التصادم
             if (player.x + (player.radius-2) > obs.x && player.x - (player.radius-2) < obs.x + obs.w &&
                 player.y + (player.radius-2) > obs.y && player.y - (player.radius-2) < obs.y + obs.h) {
                 if (Math.floor(distance) > highScore) { 
@@ -86,7 +85,6 @@ function animate() {
             if (obs.x + obs.w < 0) obstacles.splice(i, 1);
         }
     }
-
     player.draw();
     ctx.fillStyle = "white"; ctx.font = "bold 20px Arial";
     if(gameActive) ctx.fillText(`${Math.floor(distance)}m`, canvas.width - 80, 50);
@@ -94,6 +92,7 @@ function animate() {
 }
 
 window.addEventListener('touchstart', (e) => {
+    if (e.target.tagName === 'BUTTON') return; // لا تقفز الكرة عند الضغط على الأزرار
     e.preventDefault();
     if (!isMusicPlaying) { bgMusic.play().then(() => isMusicPlaying = true).catch(() => {}); }
     if (gameActive) { player.gravityDir *= -1; player.dy = player.gravityDir * 9; }
